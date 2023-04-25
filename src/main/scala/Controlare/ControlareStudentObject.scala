@@ -20,9 +20,9 @@ import akka.util.ByteString
 
 import scala.io.Source.{fromFile, fromInputStream}
 import akka.actor.ActorSystem
-
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.{RejectionHandler, Route, ValidationRejection}
+import com.sun.deploy.services.Service
 
 import scala.concurrent.Future
 import scala.io.StdIn
@@ -39,8 +39,8 @@ trait StudentJson extends SprayJsonSupport with DefaultJsonProtocol{
 
 }
 import scala.concurrent.ExecutionContext.Implicits.global
-class Routes extends  StudentJson{
-val Service=new Service()
+class Routes extends  StudentJson  {
+val Service=new Services.Service()
   val find= path("Find"/IntNumber) { id =>
     get {
       //val studentFind= Service.findOntStudent(id)
@@ -80,7 +80,7 @@ val Service=new Service()
 
 
 class htmlRouts  extends  StudentJson{
-  val Service=new Service()
+  val Service=new Services.Service()
 /*
 //==============================================================================================================================================
 

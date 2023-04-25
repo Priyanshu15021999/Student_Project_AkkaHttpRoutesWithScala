@@ -14,6 +14,6 @@ trait ServicesTrait {
   def findAllStudent():Future[Seq[String]]
   def findTotalNumberOffStudent(): Future[Int]
 
-  def findStudentDataBasedOnField(_id:Int,field:String):String
+  def findStudentDataBasedOnField(Class:Int,field:String):String
   def deleteAllStudentRecode():String
 }
