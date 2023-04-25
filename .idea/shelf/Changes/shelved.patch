@@ -1,0 +1,600 @@
+Index: src/main/scala/Controlare/Service.scala
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/main/scala/Controlare/Service.scala b/src/main/scala/Controlare/Service.scala
+new file mode 100644
+--- /dev/null	(date 1682068620755)
++++ b/src/main/scala/Controlare/Service.scala	(date 1682068620755)
+@@ -0,0 +1,590 @@
++package Controlare
++
++
++
++
++import scala.language.postfixOps
++import org.mongodb.scala.{Document, MongoClient, MongoCollection, bson}
++import org.mongodb.scala.bson.{BsonArray, BsonDocument, BsonDouble, BsonInt32, BsonString, BsonValue}
++import org.mongodb.scala.model.{Filters, Projections, Updates}
++
++import scala.concurrent.Await
++import scala.concurrent.duration.DurationInt
++import Modal.StudentC
++import reactivemongo.api.bson.{BSONDocumentReader, BSONDocumentWriter, Macros, document}
++import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
++import org.bson.BSONObject
++
++import scala.concurrent.{ExecutionContext, Future}
++import reactivemongo.api.{AsyncDriver, Cursor, DB, MongoConnection}
++import spray.json.DefaultJsonProtocol.immSeqFormat
++import spray.json.{DefaultJsonProtocol, JsonWriter, enrichAny}
++
++import scala.concurrent.ExecutionContext.Implicits.global
++
++
++class Service extends ServicesTrait {
++  val sudentURL="mongodb://localhost:27017"
++  val studentClint=MongoClient(sudentURL)
++  val student_Database=studentClint.getDatabase("studentDatabase")
++  val student_Collection=student_Database.getCollection("studentCollection")
++  implicit def personWriter: BSONDocumentWriter[StudentC] = Macros.writer[StudentC]
++  implicit def personReader: BSONDocumentReader[StudentC] = Macros.reader[StudentC]
++  override def insertStudent(studentC: StudentC) : Future[String]= Future{
++    import org.mongodb.scala.bson.BsonDocument
++    import org.mongodb.scala.bson.collection.mutable.Document
++
++    val s=new BsonDocument()
++     s.append("_id",BsonInt32(studentC._id))
++      .append("firstname",BsonString(studentC.firstname))
++      .append("lastname",BsonString(studentC.lastname))
++      .append("Class",BsonInt32(studentC.Class))
++       .append("country",BsonString(studentC.country))
++       .append("subject",BsonString(studentC.subject))
++      .append("Student_Subjects",bson.BsonArray(studentC.sSubjects.map(a=>BsonString(a))))
++    Await.result(student_Collection.insertOne(s).toFuture(), 100 seconds)
++    "Student  = "+  studentC.firstname +" Inserted "
++  }
++  override def updateStudent(id: Int, field: String, value: String) : Future[ String]= Future{
++var ds=value
++
++    println("??????????????????????????????????????????????" + field)
++
++    val filter = Filters.eq("_id", id)
++    val update = Updates.set(field,if(field.toString == "Class"){ds.toInt}else{ds})
++    val s = Await.result(student_Collection.updateOne(filter,update).toFuture(), 100 seconds)
++   "Student  = "+ id  +" Updated "
++
++  }
++  override def deleteStudent(id: Int) : Future[String]= Future{
++    val filter = Filters.eq("_id", id)
++    val s = Await.result(student_Collection.deleteOne(filter).toFuture(), 100 seconds)
++    "Student  = "+ id  +" deleted permanently"
++
++  }
++  override def findOntStudent(_id: Int) : Future[String]=Future{
++    val filter = Filters.eq("_id", _id)
++    val s = Await.result(student_Collection.find(filter).first().toFuture(), 200 seconds)
++     s.toJson
++  }
++
++    override def findAllStudent(): Future[Seq[String]]= Future {
++      val s = Await.result(student_Collection.find().toFuture(), 500 seconds)
++      s.map(_.toJson)
++    }
++
++    override def findTotalNumberOffStudent(): Future[Int] = Future {
++      val s = Await.result(student_Collection.find().toFuture(), 500 seconds)
++      s.length
++    }
++
++  override def findStudentDataBasedOnField(id: Int, field: String): String = {
++    val filter = Filters.eq("_id", id)
++    val projection = Projections.fields(Projections.include(field), Projections.excludeId())
++    val result1 = student_Collection.find(filter).projection(projection).first()
++    val s = Await.result(result1.toFuture(), 100 seconds)
++    s.toJson()
++  }
++
++  override def deleteAllStudentRecode(): String = {
++    val result1 = student_Collection.deleteMany(Document())
++    Await.result(result1.toFuture(), 100 seconds)
++    "all data deleted from database"
++  }
++
++  def findByClassAndFirstname(Class: Int , firstname: String):String = {
++    val filter = Filters.and(
++      Filters.eq("Class", Class),
++      Filters.eq("firstname", firstname)
++                            )
++    val result1 = student_Collection.find(filter).first()
++    val s = Await.result(result1.toFuture(), 100 seconds)
++    s.toJson()
++  }
++}
++
++/*
++object Service extends Service with App{
++
++  /* val output=insertStudent(StudentC(1301,"Ankit",8,Array[String]("Math","English","Hindi","Science","Social_Science")))
++   println("")
++   println("//////////////Insert///////////////")
++   println(output)
++*/
++
++    /* val find=findOntStudent(1301)
++   println("")
++   println("//////////////Fiend///////////////")
++   (find.foreach(println))*/
++
++  val update = updateStudent(1301, "StudentName", "Kartik")
++  println("")
++  println("//////////////Updata///////////////")
++  println(update)
++
++ // val delete = deleteStudent(130)
++ // println("")
++ // println("//////////////Delete///////////////")
++  //println(delete)
++
++
++}
++*/
++
++
++
++import scala.concurrent.{ ExecutionContext, Future }
++
++import reactivemongo.api.{ Cursor, DB, MongoConnection, AsyncDriver }
++import reactivemongo.api.bson.{
++  BSONDocumentWriter, BSONDocumentReader, Macros, document
++}
++
++
++
++
++
++import scala.language.postfixOps
++import org.mongodb.scala.{Document, MongoClient, MongoCollection, bson}
++import org.mongodb.scala.bson.{BsonArray, BsonDocument, BsonDouble, BsonInt32, BsonString, BsonValue}
++import org.mongodb.scala.model.{Filters, Projections, Updates}
++
++import scala.concurrent.Await
++import scala.concurrent.duration.DurationInt
++import Modal.StudentC
++import reactivemongo.api.bson.{BSONDocumentReader, BSONDocumentWriter, Macros, document}
++import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
++import org.bson.BSONObject
++
++import scala.concurrent.{ExecutionContext, Future}
++import reactivemongo.api.{AsyncDriver, Cursor, DB, MongoConnection}
++import spray.json.DefaultJsonProtocol.immSeqFormat
++import spray.json.{DefaultJsonProtocol, JsonWriter, enrichAny}
++
++import scala.concurrent.ExecutionContext.Implicits.global
++
++/*
++
++class Service extends ServicesTrait {
++  val sudentURL="mongodb://localhost:27017"
++  val studentClint=MongoClient(sudentURL)
++  val student_Database=studentClint.getDatabase("studentDatabase")
++  val student_Collection=student_Database.getCollection("studentCollection")
++  implicit def personWriter: BSONDocumentWriter[StudentC] = Macros.writer[StudentC]
++  implicit def personReader: BSONDocumentReader[StudentC] = Macros.reader[StudentC]
++  override def insertStudent(studentC: StudentC) : Future[String]= Future{
++    import org.mongodb.scala.bson.BsonDocument
++    import org.mongodb.scala.bson.collection.mutable.Document
++
++    val s=new BsonDocument()
++    s.append("_id",BsonInt32(studentC._id))
++      .append("firstname",BsonString(studentC.firstname))
++      .append("lastname",BsonString(studentC.lastname))
++      .append("Class",BsonInt32(studentC.Class))
++      .append("country",BsonString(studentC.country))
++      .append("subject",BsonString(studentC.subject))
++      .append("Student_Subjects",bson.BsonArray(studentC.sSubjects.map(a=>BsonString(a))))
++    Await.result(student_Collection.insertOne(s).toFuture(), 100 seconds)
++    "Student  = "+  studentC.firstname +" Inserted "
++  }
++  override def updateStudent(id: Int, field: String, value: String) : Future[ String]= Future{
++    var ds=value
++
++    println("??????????????????????????????????????????????" + field)
++
++    val filter = Filters.eq("_id", id)
++    val update = Updates.set(field,if(field.toString == "Class"){ds.toInt}else{ds})
++    val s = Await.result(student_Collection.updateOne(filter,update).toFuture(), 100 seconds)
++    "Student  = "+ id  +" Updated "
++
++  }
++  override def deleteStudent(id: Int) : Future[String]= Future{
++    val filter = Filters.eq("_id", id)
++    val s = Await.result(student_Collection.deleteOne(filter).toFuture(), 100 seconds)
++    "Student  = "+ id  +" deleted permanently"
++
++  }
++  override def findOntStudent(_id: Int) : Future[String]=Future{
++    val filter = Filters.eq("_id", _id)
++    val s = Await.result(student_Collection.find(filter).first().toFuture(), 200 seconds)
++    s.toJson
++  }
++
++  override def findAllStudent(): Future[Seq[String]]= Future {
++    val s = Await.result(student_Collection.find().toFuture(), 500 seconds)
++    s.map(_.toJson)
++  }
++
++  override def findTotalNumberOffStudent(): Future[Int] = Future {
++    val s = Await.result(student_Collection.find().toFuture(), 500 seconds)
++    s.length
++  }
++
++  override def findStudentDataBasedOnField(id: Int, field: String): String = {
++    val filter = Filters.eq("_id", id)
++    val projection = Projections.fields(Projections.include(field), Projections.excludeId())
++    val result1 = student_Collection.find(filter).projection(projection).first()
++    val s = Await.result(result1.toFuture(), 100 seconds)
++    s.toJson()
++  }
++
++  override def deleteAllStudentRecode(): String = {
++    val result1 = student_Collection.deleteMany(Document())
++    Await.result(result1.toFuture(), 100 seconds)
++    "all data deleted from database"
++  }
++
++  def findByClassAndFirstname(Class: Int , firstname: String):String = {
++    val filter = Filters.and(
++      Filters.eq("Class", Class),
++      Filters.eq("firstname", firstname)
++    )
++    val result1 = student_Collection.find(filter).first()
++    val s = Await.result(result1.toFuture(), 100 seconds)
++    s.toJson()
++  }
++}
++*/
++
++/*
++object Service extends Service with App{
++
++  /* val output=insertStudent(StudentC(1301,"Ankit",8,Array[String]("Math","English","Hindi","Science","Social_Science")))
++   println("")
++   println("//////////////Insert///////////////")
++   println(output)
++*/
++
++    /* val find=findOntStudent(1301)
++   println("")
++   println("//////////////Fiend///////////////")
++   (find.foreach(println))*/
++
++  val update = updateStudent(1301, "StudentName", "Kartik")
++  println("")
++  println("//////////////Updata///////////////")
++  println(update)
++
++ // val delete = deleteStudent(130)
++ // println("")
++ // println("//////////////Delete///////////////")
++  //println(delete)
++
++
++}
++*/
++
++
++
++import scala.concurrent.{ ExecutionContext, Future }
++
++import reactivemongo.api.{ Cursor, DB, MongoConnection, AsyncDriver }
++import reactivemongo.api.bson.{
++  BSONDocumentWriter, BSONDocumentReader, Macros, document
++}
++
++/*
++
++import reactivemongo.api.bson._
++object GetStarted {
++  // My settings (see available connection options)
++  val mongoUri = "mongodb://localhost:27017/mydb?authMode=scram-sha1"
++
++  import ExecutionContext.Implicits.global // use any appropriate context
++
++  // Connect to the database: Must be done only once per application
++  val driver = AsyncDriver()
++  val parsedUri = MongoConnection.fromString(mongoUri)
++
++  // Database and collections: Get references
++  val futureConnection = parsedUri.flatMap(driver.connect(_))
++  def db1: Future[DB] = futureConnection.flatMap(_.database("firstdb"))
++  def db2: Future[DB] = futureConnection.flatMap(_.database("anotherdb"))
++  def personCollection = db1.map(_.collection("person"))
++
++  // Write Documents: insert or update
++
++  implicit def personWriter: BSONDocumentWriter[Person] = Macros.writer[Person]
++  // or provide a custom one
++
++  // use personWriter
++  def createPerson(person: Person): Future[Unit] =
++    personCollection.flatMap(_.insert.one(person).map(_ => {}))
++
++  def updatePerson(person: Person): Future[Int] = {
++    val selector = document(
++      "firstName" -> person.firstName,
++      "lastName" -> person.lastName
++    )
++
++    // Update the matching person
++    personCollection.flatMap(_.update.one(selector, person).map(_.n))
++  }
++
++  implicit def personReader: BSONDocumentReader[Person] = Macros.reader[Person]
++  // or provide a custom one
++
++  def findPersonByAge(age: Int): Future[List[Person]] = Future {
++    val filter = Filters.eq("age", age)
++    personCollection.flatMap(_.find(document("age" -> age)). // query builder
++      cursor[Person](). // using the result cursor
++      collect[List](-1, Cursor.FailOnError[List[Person]]()))
++    // ... deserializes the document using personReader
++
++    // Custom persistent types
++  }
++  case class Person(firstName: String, lastName: String, age: Int)
++
++}
++package Controlare
++
++
++
++
++import scala.language.postfixOps
++import org.mongodb.scala.{Document, MongoClient, MongoCollection, bson}
++import org.mongodb.scala.bson.{BsonArray, BsonDocument, BsonDouble, BsonInt32, BsonString, BsonValue}
++import org.mongodb.scala.model.{Filters, Projections, Updates}
++
++import scala.concurrent.Await
++import scala.concurrent.duration.DurationInt
++import Modal.StudentC
++import reactivemongo.api.bson.{BSONDocumentReader, BSONDocumentWriter, Macros, document}
++import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
++import org.bson.BSONObject
++
++import scala.concurrent.{ExecutionContext, Future}
++import reactivemongo.api.{AsyncDriver, Cursor, DB, MongoConnection}
++import spray.json.DefaultJsonProtocol.immSeqFormat
++import spray.json.{DefaultJsonProtocol, JsonWriter, enrichAny}
++
++import scala.concurrent.ExecutionContext.Implicits.global
++
++
++class Service extends ServicesTrait {
++  val sudentURL="mongodb://localhost:27017"
++  val studentClint=MongoClient(sudentURL)
++  val student_Database=studentClint.getDatabase("studentDatabase")
++  val student_Collection=student_Database.getCollection("studentCollection")
++  implicit def personWriter: BSONDocumentWriter[StudentC] = Macros.writer[StudentC]
++  implicit def personReader: BSONDocumentReader[StudentC] = Macros.reader[StudentC]
++  override def insertStudent(studentC: StudentC) : Future[String]= Future{
++    import org.mongodb.scala.bson.BsonDocument
++    import org.mongodb.scala.bson.collection.mutable.Document
++
++    val s=new BsonDocument()
++    s.append("_id",BsonInt32(studentC._id))
++      .append("firstname",BsonString(studentC.firstname))
++      .append("lastname",BsonString(studentC.lastname))
++      .append("Class",BsonInt32(studentC.Class))
++      .append("country",BsonString(studentC.country))
++      .append("subject",BsonString(studentC.subject))
++      .append("Student_Subjects",bson.BsonArray(studentC.sSubjects.map(a=>BsonString(a))))
++    Await.result(student_Collection.insertOne(s).toFuture(), 100 seconds)
++    "Student  = "+  studentC.firstname +" Inserted "
++  }
++  override def updateStudent(id: Int, field: String, value: String) : Future[ String]= Future{
++    var ds=value
++
++    println("??????????????????????????????????????????????" + field)
++
++    val filter = Filters.eq("_id", id)
++    val update = Updates.set(field,if(field.toString == "Class"){ds.toInt}else{ds})
++    val s = Await.result(student_Collection.updateOne(filter,update).toFuture(), 100 seconds)
++    "Student  = "+ id  +" Updated "
++
++  }
++  override def deleteStudent(id: Int) : Future[String]= Future{
++    val filter = Filters.eq("_id", id)
++    val s = Await.result(student_Collection.deleteOne(filter).toFuture(), 100 seconds)
++    "Student  = "+ id  +" deleted permanently"
++
++  }
++  override def findOntStudent(_id: Int) : Future[String]=Future{
++    val filter = Filters.eq("_id", _id)
++    val s = Await.result(student_Collection.find(filter).first().toFuture(), 200 seconds)
++    s.toJson
++  }
++
++  override def findAllStudent(): Future[Seq[String]]= Future {
++    val s = Await.result(student_Collection.find().toFuture(), 500 seconds)
++    s.map(_.toJson)
++  }
++
++  override def findTotalNumberOffStudent(): Future[Int] = Future {
++    val s = Await.result(student_Collection.find().toFuture(), 500 seconds)
++    s.length
++  }
++
++  override def findStudentDataBasedOnField(id: Int, field: String): String = {
++    val filter = Filters.eq("_id", id)
++    val projection = Projections.fields(Projections.include(field), Projections.excludeId())
++    val result1 = student_Collection.find(filter).projection(projection).first()
++    val s = Await.result(result1.toFuture(), 100 seconds)
++    s.toJson()
++  }
++
++  override def deleteAllStudentRecode(): String = {
++    val result1 = student_Collection.deleteMany(Document())
++    Await.result(result1.toFuture(), 100 seconds)
++    "all data deleted from database"
++  }
++
++  def findByClassAndFirstname(Class: Int , firstname: String):String = {
++    val filter = Filters.and(
++      Filters.eq("Class", Class),
++      Filters.eq("firstname", firstname)
++    )
++    val result1 = student_Collection.find(filter).first()
++    val s = Await.result(result1.toFuture(), 100 seconds)
++    s.toJson()
++  }
++}
++*/
++
++/*
++object Service extends Service with App{
++
++  /* val output=insertStudent(StudentC(1301,"Ankit",8,Array[String]("Math","English","Hindi","Science","Social_Science")))
++   println("")
++   println("//////////////Insert///////////////")
++   println(output)
++*/
++
++    /* val find=findOntStudent(1301)
++   println("")
++   println("//////////////Fiend///////////////")
++   (find.foreach(println))*/
++
++  val update = updateStudent(1301, "StudentName", "Kartik")
++  println("")
++  println("//////////////Updata///////////////")
++  println(update)
++
++ // val delete = deleteStudent(130)
++ // println("")
++ // println("//////////////Delete///////////////")
++  //println(delete)
++
++
++}
++*/
++
++
++
++import scala.concurrent.{ ExecutionContext, Future }
++
++import reactivemongo.api.{ Cursor, DB, MongoConnection, AsyncDriver }
++import reactivemongo.api.bson.{
++  BSONDocumentWriter, BSONDocumentReader, Macros, document
++}
++/*
++
++
++import reactivemongo.api.bson._
++object GetStarted {
++  // My settings (see available connection options)
++  val mongoUri = "mongodb://localhost:27017/mydb?authMode=scram-sha1"
++
++  import ExecutionContext.Implicits.global // use any appropriate context
++
++  // Connect to the database: Must be done only once per application
++  val driver = AsyncDriver()
++  val parsedUri = MongoConnection.fromString(mongoUri)
++
++  // Database and collections: Get references
++  val futureConnection = parsedUri.flatMap(driver.connect(_))
++  def db1: Future[DB] = futureConnection.flatMap(_.database("firstdb"))
++  def db2: Future[DB] = futureConnection.flatMap(_.database("anotherdb"))
++  def personCollection = db1.map(_.collection("person"))
++
++  // Write Documents: insert or update
++
++  implicit def personWriter: BSONDocumentWriter[Person] = Macros.writer[Person]
++  // or provide a custom one
++
++  // use personWriter
++  def createPerson(person: Person): Future[Unit] =
++    personCollection.flatMap(_.insert.one(person).map(_ => {}))
++
++  def updatePerson(person: Person): Future[Int] = {
++    val selector = document(
++      "firstName" -> person.firstName,
++      "lastName" -> person.lastName
++    )
++
++    // Update the matching person
++    personCollection.flatMap(_.update.one(selector, person).map(_.n))
++  }
++
++  implicit def personReader: BSONDocumentReader[Person] = Macros.reader[Person]
++  // or provide a custom one
++
++  def findPersonByAge(age: Int): Future[List[Person]] = Future {
++    val filter = Filters.eq("age", age)
++    personCollection.flatMap(_.find(document("age" -> age)). // query builder
++      cursor[Person](). // using the result cursor
++      collect[List](-1, Cursor.FailOnError[List[Person]]()))
++    // ... deserializes the document using personReader
++
++    // Custom persistent types
++  }
++  case class Person(firstName: String, lastName: String, age: Int)
++
++}
++
++
++import reactivemongo.api.bson._
++object GetStarted {
++  // My settings (see available connection options)
++  val mongoUri = "mongodb://localhost:27017/mydb?authMode=scram-sha1"
++
++  import ExecutionContext.Implicits.global // use any appropriate context
++
++  // Connect to the database: Must be done only once per application
++  val driver = AsyncDriver()
++  val parsedUri = MongoConnection.fromString(mongoUri)
++
++  // Database and collections: Get references
++  val futureConnection = parsedUri.flatMap(driver.connect(_))
++  def db1: Future[DB] = futureConnection.flatMap(_.database("firstdb"))
++  def db2: Future[DB] = futureConnection.flatMap(_.database("anotherdb"))
++  def personCollection = db1.map(_.collection("person"))
++
++  // Write Documents: insert or update
++
++  implicit def personWriter: BSONDocumentWriter[Person] = Macros.writer[Person]
++  // or provide a custom one
++
++  // use personWriter
++  def createPerson(person: Person): Future[Unit] =
++    personCollection.flatMap(_.insert.one(person).map(_ => {}))
++
++  def updatePerson(person: Person): Future[Int] = {
++    val selector = document(
++      "firstName" -> person.firstName,
++      "lastName" -> person.lastName
++    )
++
++    // Update the matching person
++    personCollection.flatMap(_.update.one(selector, person).map(_.n))
++  }
++
++  implicit def personReader: BSONDocumentReader[Person] = Macros.reader[Person]
++  // or provide a custom one
++
++  def findPersonByAge(age: Int): Future[List[Person]] = Future {
++    val filter = Filters.eq("age", age)
++    personCollection.flatMap(_.find(document("age" -> age)). // query builder
++      cursor[Person](). // using the result cursor
++      collect[List](-1, Cursor.FailOnError[List[Person]]()))
++    // ... deserializes the document using personReader
++
++    // Custom persistent types
++  }
++  case class Person(firstName: String, lastName: String, age: Int)
++
++}
++
++
++*/
